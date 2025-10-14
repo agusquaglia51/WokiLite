@@ -1,0 +1,77 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Restaurant {
+  id            String        @id
+  name          String
+  timezone      String
+  shifts        Json?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  sectors       Sector[]
+  reservations  Reservation[]
+}
+
+model Sector {
+  id            String        @id
+  restaurantId  String
+  name          String
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  restaurant    Restaurant    @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  tables        Table[]
+  reservations  Reservation[]
+
+  @@index([restaurantId])
+}
+
+model Table {
+  id         String    @id
+  sectorId   String 
+  name       String 
+  minSize    Int 
+  maxSize    Int 
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  sector     Sector    @relation(fields: [sectorId], references: [id], onDelete: Cascade)
+
+  @@index([sectorId])
+}
+
+model Reservation {
+  id                String      @id
+  restaurantId      String 
+  sectorId          String 
+  tableIds          String[] 
+  partySize         Int 
+  startDateTimeISO  DateTime 
+  endDateTimeISO    DateTime 
+  status            String      @default("CONFIRMED")
+  customerName      String 
+  customerPhone     String 
+  customerEmail     String 
+  notes             String? 
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  restaurant        Restaurant  @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  sector            Sector      @relation(fields: [sectorId], references: [id], onDelete: Cascade)
+
+  @@index([restaurantId, sectorId])
+  @@index([startDateTimeISO])
+  @@index([status])
+}
+
+model IdempotencyKey {
+  key            String    @id
+  reservationId  String 
+  createdAt      DateTime  @default(now())
+
+  @@index([reservationId])
+}
+
