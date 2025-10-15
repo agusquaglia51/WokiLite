@@ -46,16 +46,18 @@ export interface Reservation {
   startDateTimeISO: ISODateTime;
   endDateTimeISO: ISODateTime;
   status: ReservationStatus;                       // CORE uses CONFIRMED | CANCELLED
-  customer: Customer;
+  customer?: Customer;
   notes?: string;
   createdAt: ISODateTime;
   updatedAt: ISODateTime;
 }
 
+const types = {
+  Restaurant: {} as Restaurant,
+  Sector: {} as Sector,
+  Table: {} as Table,
+  Customer: {} as Customer,
+  Reservation: {} as Reservation,
+};
 
-export interface AvailabilityQuery {
-  restaurantId: string;
-  sectorId: string;
-  date: string;
-  partySize: string;
-}
+export default types;
