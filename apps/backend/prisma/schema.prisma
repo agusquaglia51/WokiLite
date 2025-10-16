@@ -45,7 +45,7 @@ model Table {
 }
 
 model Reservation {
-  id                String      @id
+  id                String      @id @default(uuid())
   restaurantId      String 
   sectorId          String 
   tableIds          String[] 
