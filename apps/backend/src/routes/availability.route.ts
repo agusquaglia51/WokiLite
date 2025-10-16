@@ -1,10 +1,10 @@
 import express from "express";
-import { RestaurantRepository } from "../repository/restaurantRepository.ts";
-import { SectorRepository } from "../repository/sectorRepository.ts";
+import { RestaurantRepository } from "../repositories/restaurant.repository.ts";
+import { SectorRepository } from "../repositories/sector.repository.ts";
 import { doIntervalsOverlap, generateTimeSlots } from "../utils/time.ts";
-import { ReservationRepository } from "../repository/reservationRepository.ts";
+import { ReservationRepository } from "../repositories/reservation.repository.ts";
 import dayjs from "dayjs";
-import { TableRepository } from "../repository/tableRepository.ts";
+import { TableRepository } from "../repositories/table.repository.ts";
 import types from "../types/types.ts";
 
 
@@ -14,8 +14,9 @@ const router = express.Router();
 
 // GET /availability?restaurantId=R1&sectorId=S1&date=2025-09-08&partySize=4
 
-router.get("/availability", async (req ,res) => {
+router.get("/", async (req ,res) => {
 
+  console.log('estoy entrando');
   try{
 
     const { restaurantId, sectorId, date, partySize } = req.query as {
@@ -33,6 +34,8 @@ router.get("/availability", async (req ,res) => {
     }
 
     const restaurant = await RestaurantRepository.findById(restaurantId);
+
+    
     const sector = await SectorRepository.findById(sectorId);
     const party = parseInt(partySize);
 

@@ -19,6 +19,20 @@ export class RestaurantRepository {
     };
   }
 
+  static async findAll(): Promise<Restaurant[] | null>{
+    const restaurantList = await prisma.restaurant.findMany();
+
+    if (!restaurantList) return null;
+
+    return restaurantList.map(r => ({
+      ...r,
+      shifts: r.shifts as any,
+      createdAt: r.createdAt.toISOString(),
+      updatedAt: r.updatedAt.toISOString(),
+    }));
+
+  }
+
 
   static async create(data: Restaurant): Promise<Restaurant> {
     const restaurant = await prisma.restaurant.create({
@@ -29,6 +43,7 @@ export class RestaurantRepository {
         shifts: data.shifts as any,
       },
     });
+
 
     return {
       ...restaurant,
