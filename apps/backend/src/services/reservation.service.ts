@@ -131,4 +131,9 @@ export class ReservationService {
       return reservation;
     });
   }
+
+  static async cancelReservation(id: string){
+    const reservation = await ReservationRepository.cancelReservation(id);
+    return reservation;
+  }
 }

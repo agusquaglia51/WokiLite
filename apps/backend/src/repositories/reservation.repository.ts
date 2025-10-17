@@ -87,4 +87,16 @@ export class ReservationRepository {
 
     return reservation;
   }
+
+  static async cancelReservation(id: string){
+   try {
+    const reservation = await prisma.reservation.update({
+      where: { id },
+      data: { status: "CANCELLED" },
+    });
+    return reservation;
+  } catch (error) {
+    throw error; 
+  }
+  }
 }
