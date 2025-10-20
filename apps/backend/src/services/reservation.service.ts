@@ -3,83 +3,83 @@ import { CreateReservationDto } from "../schemas/reservationSchema.ts";
 import {prisma} from "../db/prismaClient.ts";
 import { TableRepository } from "../repositories/table.repository.ts";
 import { ReservationRepository } from "../repositories/reservation.repository.ts";
-import {  Reservation, Table } from "../types/types.ts";
+import {  Reservation, ReservationDto, Table } from "../types/types.ts";
+import { getOccupiedTables, findAvailableTables } from "../utils/availability.ts";
 
 export class ReservationService {
 
-  private static findAvailableTables(
-    allTables: Table[],
-    occupiedTableIds: Set<string>,
-    partySize: number
-  ): string[] {
-    const availableTables = allTables.filter(
-      (table) =>
-        !occupiedTableIds.has(table.id) &&
-        table.minSize <= partySize &&
-        table.maxSize >= partySize
+  static async getReservationsBySectorAndDate(
+    restaurantId: string,
+    sectorId: string,
+    date: string
+  ): Promise<ReservationDto[]> {
+    const reservations = await ReservationRepository.findBySector(
+      restaurantId,
+      sectorId,
+      date
     );
 
-    if (availableTables.length === 0) {
-      return []
-    }
-    
-    availableTables.sort((a, b) => a.maxSize - b.maxSize);
-
-    return availableTables.map(at => at.id);
+    return reservations.map((r) => ({
+      id: r.id,
+      restaurantId: r.restaurantId,
+      sectorId: r.sectorId,
+      tableIds: r.tableIds,
+      partySize: r.partySize,
+      startDateTimeISO: r.startDateTimeISO.toISOString(),
+      endDateTimeISO: r.endDateTimeISO.toISOString(),
+      status: r.status as Reservation["status"],
+      customer: {
+        name: r.customerName,
+        email: r.customerEmail,
+        phone: r.customerPhone,
+      },
+      notes: r.notes ?? undefined,
+      createdAt: r.createdAt.toISOString(),
+      updatedAt: r.updatedAt.toISOString(),
+    }));
   }
 
-  private static getOccupiedTables(
-    reservations: Reservation[],
-    startTime: string,
-    endTime: string
-  ): Set<string> {
-    const occupiedIds = new Set<string>();
-    const newStart = dayjs(startTime);
-    const newEnd = dayjs(endTime);
 
-    for (const reservation of reservations) {
-      if (reservation.status === "CANCELLED") {
-        continue;
-      }
-
-      const resStart = dayjs(reservation.startDateTimeISO);
-      const resEnd = dayjs(reservation.endDateTimeISO);
-
-      const hasOverlap =
-        newStart.isBefore(resEnd) && newEnd.isAfter(resStart);
-
-      if (hasOverlap) {
-        reservation.tableIds.forEach((id) => occupiedIds.add(id));
-      }
-    }
-
-    return occupiedIds;
-  }
-
-  static async createReservation(data: CreateReservationDto,idempotencyKey: string) {
+  static async createReservation(data: CreateReservationDto,idempotencyKey: string)
+  : Promise<any | null> {
 
     const {customer, ...rest} = data;
 
-    const tables = await TableRepository.findManyBySector(data.sectorId);
+    const tables = (await TableRepository.findManyBySector(data.sectorId)).map((t) => ({
+      ...t,
+      createdAt: t.createdAt.toISOString(),
+      updatedAt: t.updatedAt.toISOString(),
+    }));
 
     if (tables.length === 0) {
       throw new Error("No hay mesas disponibles en este sector");
     }
 
-    const reservations = await ReservationRepository.findBySector(data.restaurantId,data.sectorId, data.startDateTimeISO);
+    const reservations = (await ReservationRepository.findBySector(data.restaurantId,data.sectorId, data.startDateTimeISO)).map((r) => ({
+      ...r,
+      notes: r.notes ?? undefined,
+      status: r.status as Reservation["status"],
+      startDateTimeISO: r.startDateTimeISO.toISOString(),
+      endDateTimeISO: r.endDateTimeISO.toISOString(),
+      createdAt: r.createdAt.toISOString(),
+      updatedAt: r.updatedAt.toISOString(),
+    }));
 
+    if(!reservations && !tables){
+      return null;
+    }
 
     const endDateTimeISO = dayjs(data.startDateTimeISO)
       .add(90, "minute")
       .toISOString();
 
-    const occupiedTables = this.getOccupiedTables(
+    const occupiedTables = getOccupiedTables(
       reservations,
       data.startDateTimeISO,
       endDateTimeISO
     );
 
-     const availableTableIds = this.findAvailableTables(
+     const availableTableIds = findAvailableTables(
       tables,
       occupiedTables,
       data.partySize
@@ -100,8 +100,6 @@ export class ReservationService {
       customerPhone: customer.phone,
       customerEmail: customer.email,
     };
-
-    console.log("estoy entrando2");
 
     return await prisma.$transaction(async (tx) => {
      
@@ -135,5 +133,28 @@ export class ReservationService {
   static async cancelReservation(id: string){
     const reservation = await ReservationRepository.cancelReservation(id);
     return reservation;
+  }
+
+  static async getReservationsByDay(restaurantId: string, date: string, sectorId?: string): Promise<ReservationDto[]>{
+    const reservations = await ReservationRepository.findByDay(restaurantId, sectorId, date);
+
+    return reservations.map((r) => ({
+      id: r.id,
+      restaurantId: r.restaurantId,
+      sectorId: r.sectorId,
+      tableIds: r.tableIds,
+      partySize: r.partySize,
+      startDateTimeISO: r.startDateTimeISO.toISOString(),
+      endDateTimeISO: r.endDateTimeISO.toISOString(),
+      status: r.status as Reservation["status"],
+      customer: {
+        name: r.customerName,
+        email: r.customerEmail,
+        phone: r.customerPhone,
+      },
+      notes: r.notes ?? undefined,
+      createdAt: r.createdAt.toISOString(),
+      updatedAt: r.updatedAt.toISOString(),
+    }));
   }
 }
