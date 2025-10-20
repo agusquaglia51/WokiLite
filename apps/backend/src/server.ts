@@ -1,4 +1,5 @@
 import express from 'express';
+import cors from 'cors';
 import pinoHttp from 'pino-http';
 import dotenv from 'dotenv';
 import availabilityRouter from './routes/availability.route.ts';
@@ -10,6 +11,12 @@ dotenv.config();
 
 const server = express();
 const port = process.env.PORT || 3001;
+
+server.use(cors({
+  origin: "http://localhost:3000",
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  allowedHeaders: ["Content-Type", "Authorization"]
+}));
 
 
 server.use(pinoHttp());

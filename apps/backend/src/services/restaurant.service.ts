@@ -7,4 +7,10 @@ export class RestaurantService {
 
     return restaurantList
   }
+
+  static async getRestaurant(id: string){
+    const restaurant = await RestaurantRepository.findById(id);
+
+    return restaurant;
+  }
 }
