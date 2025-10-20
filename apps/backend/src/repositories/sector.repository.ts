@@ -1,7 +1,7 @@
-import  types  from "../types/types.ts";
+import { Sector } from "@prisma/client";
 import {prisma} from "../db/prismaClient.ts";
 
-type Sector = typeof types.Sector;
+
 
 export class SectorRepository {
   static async findById(id: string): Promise<Sector | null>{
@@ -11,10 +11,12 @@ export class SectorRepository {
     
     if (!sector) return null;
     
-    return {
-      ...sector,
-      createdAt: sector.createdAt.toISOString(),
-      updatedAt: sector.updatedAt.toISOString(),
-    }
+    return sector;
+  }
+
+  static async findManyByRestaurant(restaurantId: string): Promise<Sector[]> {
+    const sectors = await prisma.sector.findMany({ where: { restaurantId }});
+
+    return sectors
   }
 }

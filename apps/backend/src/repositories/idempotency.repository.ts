@@ -1,14 +1,14 @@
+import { IdempotencyKey } from "@prisma/client";
 import { prisma } from "../db/prismaClient";
-import types from "../types/types";
+import { IdempotencyKeyDto } from "../types/types";
 
-type IdempotencyKeyDto = typeof types.IdempotencyKeyDto;
 
 export class IdempotencyRepository {
-  static async findByKey(key: string) {
+  static async findByKey(key: string): Promise<IdempotencyKey | null> {
     return prisma.idempotencyKey.findUnique({ where: { key } });
   }
 
-  static async create(data: IdempotencyKeyDto) {
+  static async create(data: IdempotencyKeyDto): Promise<IdempotencyKey> {
     return prisma.idempotencyKey.create({ data });
   }
 }

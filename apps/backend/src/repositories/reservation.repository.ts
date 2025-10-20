@@ -1,9 +1,7 @@
+import { Reservation } from "@prisma/client";
 import { prisma } from "../db/prismaClient.ts";
 import dayjs from "dayjs";
-import types from "../types/types.ts";
 
-type Reservation = typeof types.Reservation;
-type ReservationDto = typeof types.ReservationDto;
 
 export class ReservationRepository {
 
@@ -11,15 +9,7 @@ export class ReservationRepository {
     const reservation = await prisma.reservation.findUnique({ where: { id } });
     if (!reservation) return null;
 
-    return {
-      ...reservation,
-      createdAt: reservation.createdAt.toISOString(),
-      updatedAt: reservation.updatedAt.toISOString(),
-      status: reservation.status as Reservation["status"], 
-      startDateTimeISO: reservation.startDateTimeISO.toISOString(),
-      endDateTimeISO: reservation.endDateTimeISO.toISOString(),
-      notes: reservation.notes ?? undefined,
-    };
+    return reservation;
   }
 
   static async findBySector(
@@ -41,31 +31,12 @@ export class ReservationRepository {
       },
     });
 
-    return reservations.map((r) => ({
-      id: r.id,
-      restaurantId: r.restaurantId,
-      sectorId: r.sectorId,
-      tableIds: r.tableIds,
-      partySize: r.partySize,
-      startDateTimeISO: r.startDateTimeISO.toISOString(),
-      endDateTimeISO: r.endDateTimeISO.toISOString(),
-      status: r.status as Reservation["status"], 
-      customer: {
-        name: r.customerName,
-        email: r.customerEmail,
-        phone: r.customerPhone,
-        createdAt: r.createdAt.toISOString(),
-        updatedAt: r.updatedAt.toISOString(),
-      },
-      notes: r.notes ?? undefined,
-      createdAt: r.createdAt.toISOString(),
-      updatedAt: r.updatedAt.toISOString(),
-    }));
+    return reservations;
   }
 
   
 
-  static async createReservation(data: ReservationDto){
+  static async createReservation(data: Reservation): Promise<Reservation> {
     const endDateTimeISO = dayjs(data.startDateTimeISO).add(90,"minute").toISOString();
 
     const reservation = await prisma.reservation.create({
@@ -76,11 +47,11 @@ export class ReservationRepository {
         tableIds: data.tableIds, 
         partySize: data.partySize,
         startDateTimeISO: new Date(data.startDateTimeISO),
-        endDateTimeISO,
+        endDateTimeISO: new Date(endDateTimeISO),
         status: "CONFIRMED",
-        customerName: data.customer.name,
-        customerEmail: data.customer.email,
-        customerPhone: data.customer.phone,
+        customerName: data.customerName,
+        customerPhone: data.customerPhone,
+        customerEmail: data.customerEmail, 
         notes: data.notes ?? null,
       }
     })
@@ -88,15 +59,45 @@ export class ReservationRepository {
     return reservation;
   }
 
-  static async cancelReservation(id: string){
-   try {
-    const reservation = await prisma.reservation.update({
-      where: { id },
-      data: { status: "CANCELLED" },
+  static async cancelReservation(id: string): Promise<Reservation | null> {
+    try {
+      const reservation = await prisma.reservation.update({
+        where: { id },
+        data: { status: "CANCELLED" },
+      });
+      return reservation;
+    } catch (error) {
+      throw error; 
+    }
+  }
+
+  static async findByDay(
+  restaurantId: string,
+  sectorId: string | undefined,
+  date: string
+  ): Promise<Reservation[]> {
+    const startOfDay = dayjs(date).startOf("day").toDate();
+    const endOfDay = dayjs(date).endOf("day").toDate();
+
+    const whereClause: any = {
+      restaurantId,
+      startDateTimeISO: {
+        gte: startOfDay,
+        lt: endOfDay,
+      },
+    };
+
+    if (sectorId) {
+      whereClause.sectorId = sectorId;
+    }
+
+    const reservations = await prisma.reservation.findMany({
+      where: whereClause,
+      orderBy: { startDateTimeISO: "asc" },
     });
-    return reservation;
-  } catch (error) {
-    throw error; 
+
+
+    return reservations;
   }
-  }
+
 }
