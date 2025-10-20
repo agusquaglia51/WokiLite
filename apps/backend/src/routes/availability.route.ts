@@ -1,14 +1,12 @@
 import express from "express";
-import { RestaurantRepository } from "../repositories/restaurant.repository.ts";
-import { SectorRepository } from "../repositories/sector.repository.ts";
 import { doIntervalsOverlap, generateTimeSlots } from "../utils/time.ts";
-import { ReservationRepository } from "../repositories/reservation.repository.ts";
 import dayjs from "dayjs";
-import { TableRepository } from "../repositories/table.repository.ts";
-import types from "../types/types.ts";
+import { RestaurantService } from "../services/restaurant.service.ts";
+import { SectorService } from "../services/sector.service.ts";
+import { Table } from "../types/types.ts";
+import { ReservationService } from "../services/reservation.service.ts";
+import { TableService } from "../services/table.service.ts";
 
-
-type Table = typeof types.Table; 
 
 const router = express.Router();
 
@@ -16,7 +14,6 @@ const router = express.Router();
 
 router.get("/", async (req ,res) => {
 
-  console.log('estoy entrando');
   try{
 
     const { restaurantId, sectorId, date, partySize } = req.query as {
@@ -33,10 +30,10 @@ router.get("/", async (req ,res) => {
       });
     }
 
-    const restaurant = await RestaurantRepository.findById(restaurantId);
+    const restaurant = await RestaurantService.getRestaurant(restaurantId);
 
-    
-    const sector = await SectorRepository.findById(sectorId);
+    const sector = await SectorService.getById(sectorId);
+
     const party = parseInt(partySize);
 
     if (!restaurant) {
@@ -53,9 +50,9 @@ router.get("/", async (req ,res) => {
 
     const allTimeSlots = generateTimeSlots(date, restaurant.timezone, shifts)
 
-    const reservations = await ReservationRepository.findBySector(restaurant.id,sector.id, date)
+    const reservations = await ReservationService.getReservationsBySectorAndDate(restaurant.id,sector.id, date);
 
-    const tables = await TableRepository.findManyBySector(sector.id);
+    const tables = await TableService.getTablesBySector(sector.id);
 
     const slotMinutes = 15;
     const durationMinutes = 90;
@@ -91,7 +88,7 @@ router.get("/", async (req ,res) => {
         return {
           start: dayjs(slotStart).format("YYYY-MM-DDTHH:mm:ssZ"),
           available: true,
-          tables: availableTables.map((t: Table) => t.name),
+          tables: availableTables.map((t: Table) => {t.name}),
         };
       })
     );  
