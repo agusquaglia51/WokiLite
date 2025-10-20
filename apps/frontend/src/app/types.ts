@@ -73,6 +73,33 @@ export interface IdempotencyKeyDto{
   createdAt: ISODateTime;
 }
 
+
+export type ReservationPayload = Pick<
+  Reservation,
+  "restaurantId" | "sectorId" | "partySize" | "startDateTimeISO" | "notes"
+> & {
+  customer: Pick<Customer, "name" | "phone" | "email">;
+};
+
+
+export interface ReservationItem {
+  id: string;
+  sectorId: string;
+  tableIds: string[];
+  partySize: number;
+  start: string; // ISO 8601 datetime string
+  end: string;   // ISO 8601 datetime string
+  status: "CONFIRMED" | "CANCELLED" | "PENDING"; // ajustá según tus estados
+  customer: Customer;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ReservationsByDay {
+  date: string; // formato YYYY-MM-DD
+  items: ReservationItem[];
+}
+
 const types = {
   Restaurant: {} as Restaurant,
   Sector: {} as Sector,

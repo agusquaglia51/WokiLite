@@ -1,40 +1,47 @@
 import { Restaurant, Sector, Table } from "../types";
 
-export class RestaurantService  {
+export class RestaurantService {
   static async fetchRestaurants(): Promise<Restaurant[]> {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/restaurants`,{
-      cache: "no-store",
-      method: "GET",
-      
-    });
-    if (!res.ok) throw new Error("Error fetching restaurants");
-    return res.json();
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/restaurants`);
+      if (!res.ok) throw new Error("Error fetching restaurants");
+      return await res.json();
+    } catch (error) {
+      console.error("RestaurantService.fetchRestaurants failed:", error);
+      throw error; 
+    }
   }
 
   static async fetchRestaurant(id: string): Promise<Restaurant> {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/restaurants/${id}`,{
-      method: "GET",
-      
-    });
-    if (!res.ok) throw new Error("Error fetching restaurant");
-    return res.json();
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/restaurants/${id}`);
+      if (!res.ok) throw new Error("Error fetching restaurant");
+      return await res.json();
+    } catch (error) {
+      console.error("RestaurantService.fetchRestaurant failed:", error);
+      throw error;
+    }
   }
 
   static async fetchSectors(restaurantId: string): Promise<Sector[]> {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/restaurants/${restaurantId}/sectors`,{
-      method: "GET",
-      
-    });
-    if (!res.ok) throw new Error("Error fetching sectors");
-    return res.json();
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/restaurants/${restaurantId}/sectors`);
+      if (!res.ok) throw new Error("Error fetching sectors");
+      return await res.json();
+    } catch (error) {
+      console.error("RestaurantService.fetchSectors failed:", error);
+      throw error;
+    }
   }
 
   static async fetchTables(restaurantId: string): Promise<Table[]> {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/restaurants/${restaurantId}/tables`,{
-      method: "GET",
-      
-    });
-    if (!res.ok) throw new Error("Error fetching tables");
-    return res.json();
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/restaurants/${restaurantId}/tables`);
+      if (!res.ok) throw new Error("Error fetching tables");
+      return await res.json();
+    } catch (error) {
+      console.error("RestaurantService.fetchTables failed:", error);
+      throw error;
+    }
   }
-};
+}

@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import Link from "next/link";
 import { Restaurant, Sector, Table } from "../types";
 import { RestaurantService } from "../services/restaurant.service";
 import { useParams } from "next/navigation";
@@ -9,6 +8,7 @@ import DatePicker from "react-datepicker";
 import { getImageUrl } from "../utils";
 // @ts-ignore: Ignore missing type declarations for css side-effect import
 import "react-datepicker/dist/react-datepicker.css";
+import { ReservationService } from "../services/reservation.service";
 
 interface ReservationPayload {
   restaurantId: string;
@@ -36,6 +36,7 @@ export default function RestaurantPage() {
     notes: "",
   });
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [selectedTable, setSelectedTable] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -43,23 +44,23 @@ export default function RestaurantPage() {
   const params = useParams();
   const { id } = params as { id: string };
 
-  // Cargar datos del restaurante y sus sectores/mesas
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        const restaurant = await RestaurantService.fetchRestaurant(id);
-        setRestaurant(restaurant);
+  const fetchData = async () => {
+    try {
+      const restaurant = await RestaurantService.fetchRestaurant(id);
+      setRestaurant(restaurant);
 
-        const sectors = await RestaurantService.fetchSectors(id);
-        setSectors(sectors);
+      const sectors = await RestaurantService.fetchSectors(id);
+      setSectors(sectors);
 
-        const tables = await RestaurantService.fetchTables(id);
-        setTables(tables);
-      } catch (err) {
-        console.error(err);
-      }
+      const tables = await RestaurantService.fetchTables(id);
+      setTables(tables);
+    } catch (err) {
+      console.error(err);
     }
-    fetchData();
+  };
+
+  useEffect(() => {
+    if (id) fetchData();
   }, [id]);
 
   const handleReserve = async (e: React.FormEvent) => {
@@ -86,19 +87,7 @@ export default function RestaurantPage() {
         notes: formData.notes,
       };
 
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/reservations`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Idempotency-Key": crypto.randomUUID(),
-          },
-          body: JSON.stringify(payload),
-        }
-      );
-
-      if (!res.ok) throw new Error("Error al crear la reserva");
+      const reservation = await ReservationService.createReservation(payload);
 
       setSuccess(true);
       setFormData({ name: "", phone: "", email: "", notes: "" });
@@ -114,23 +103,22 @@ export default function RestaurantPage() {
     return <div className="p-4">Cargando restaurante...</div>;
   }
 
+  const handleSelectTable = (tableId: string, partySize: number) => {
+    setSelectedTable(tableId);
+    setPartySize(partySize);
+  };
+
   return (
     <div className="p-6 max-w-3xl mx-auto">
-      <div className="mb-4">
-        <Link href="/" className="text-blue-500 hover:underline">
-          ← Volver al inicio
-        </Link>
-      </div>
-
       <h1 className="text-3xl font-semibold mb-2">{restaurant.name}</h1>
 
       <img
         alt={restaurant.name}
         src={getImageUrl(restaurant.id) || "/default.jpeg"}
-        className="h-60 w-full object-cover"
+        className="h-60 w-full object-cover rounded-sm"
       />
 
-      {/* Turnos */}
+     
       <section className="mb-6">
         <h2 className="text-xl font-semibold mb-2">Horarios de atencion</h2>
         <div className="flex flex-wrap gap-2">
@@ -145,7 +133,7 @@ export default function RestaurantPage() {
         </div>
       </section>
 
-      {/* Sectores */}
+     
       <section className="mb-6">
         <h2 className="text-xl font-semibold mb-2">Sectores</h2>
         <div className="flex flex-wrap gap-2">
@@ -156,7 +144,7 @@ export default function RestaurantPage() {
               className={`px-4 py-2 rounded-lg border ${
                 selectedSector === sector.id
                   ? "bg-green-600 text-white"
-                  : "bg-white hover:bg-gray-100"
+                  : "hover:bg-green-400"
               }`}
             >
               {sector.name}
@@ -165,7 +153,7 @@ export default function RestaurantPage() {
         </div>
       </section>
 
-      {/* Mesas */}
+      
       {selectedSector && (
         <section className="mb-6">
           <h2 className="text-xl font-semibold mb-2">
@@ -177,7 +165,12 @@ export default function RestaurantPage() {
               .map((table) => (
                 <div
                   key={table.id}
-                  className="border rounded-lg p-3 text-sm bg-gray-50"
+                  className={`border rounded-lg p-3 text-sm ${
+                    selectedTable === table.id
+                      ? "bg-green-600 text-white"
+                      : "hover:bg-green-400"
+                  } `}
+                  onClick={() => handleSelectTable(table.id, table.maxSize)}
                 >
                   <p className="font-medium">{table.name}</p>
                   <p>
@@ -189,7 +182,7 @@ export default function RestaurantPage() {
         </section>
       )}
 
-      {/* Formulario de reserva */}
+      
       <section className="border-t pt-6">
         <h2 className="text-xl font-semibold mb-4">Hacer una reserva</h2>
         <form onSubmit={handleReserve} className="flex flex-col gap-3">
@@ -199,7 +192,7 @@ export default function RestaurantPage() {
               onChange={(date) => setSelectedDate(date)}
               showTimeSelect
               timeFormat="HH:mm"
-              timeIntervals={30}
+              timeIntervals={15}
               dateFormat="dd/MM/yyyy HH:mm"
               placeholderText="Seleccioná fecha y hora"
               className="border rounded-lg p-2 w-full"
@@ -236,15 +229,6 @@ export default function RestaurantPage() {
             className="border rounded-lg p-2"
             required
           />
-          <input
-            type="number"
-            min={1}
-            value={partySize}
-            onChange={(e) => setPartySize(Number(e.target.value))}
-            className="border rounded-lg p-2"
-            placeholder="Cantidad de personas"
-            required
-          />
           <textarea
             placeholder="Notas adicionales"
             value={formData.notes}
@@ -260,7 +244,7 @@ export default function RestaurantPage() {
             className={`px-4 py-2 rounded-lg font-medium text-white ${
               loading
                 ? "bg-gray-400"
-                : "bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400"
+                : "bg-green-600 hover:bg-green-700 disabled:bg-gray-400"
             }`}
           >
             {loading ? "Enviando..." : "Confirmar reserva"}

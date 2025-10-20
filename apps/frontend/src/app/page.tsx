@@ -10,7 +10,6 @@ export default async function HomePage({
   searchParams: { q: string };
 }) {
   const restaurants = await RestaurantService.fetchRestaurants();
-  console.log(restaurants);
   return (
     <section>
       <section className="grid grid-cols-1 gap-12 md:grid-cols-2 lg:grid-cols-3">

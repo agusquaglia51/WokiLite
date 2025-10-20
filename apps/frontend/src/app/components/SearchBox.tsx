@@ -18,10 +18,10 @@ export default function SearchBox() {
     <form onSubmit={handleSubmit} className="inline-flex gap-2 mb-4 max-h-10">
       <input
         defaultValue={searchParams.get("q") || ""}
-        className="px-2 bg-neutral-200"
+        className="px-2 bg-neutral-200 rounded-sm"
         name="query"
       />
-      <button type="submit" className="p-2 bg-white/20">
+      <button type="submit" className="p-2 bg-white/20 rounded-sm">
         Search
       </button>
     </form>
