@@ -65,8 +65,32 @@ export default function ReservationsPage() {
     if (date && selectedRestaurant) fetchReservations();
   }, [selectedRestaurant, date, sectorId]);
 
+  const createSampleReservation = async () => {
+    await ReservationService.createReservation({
+      restaurantId: "R1",
+      sectorId: "S1",
+      partySize: Math.floor(Math.random() * 6) + 2,
+      startDateTimeISO: new Date().toISOString(),
+      customer: {
+        name: "Test User",
+        phone: "+54911555512345",
+        email: "test@example.com",
+      },
+    });
+    fetchReservations();
+  };
+
   return (
     <section className="max-w-5xl mx-auto mt-10 p-4">
+      <div className="flex justify-center">
+        <button
+          onClick={createSampleReservation}
+          className="mb-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+        >
+          Crear reserva de muestra
+        </button>
+      </div>
+
       <h1 className="text-2xl font-bold mb-6 text-center">
         📅 Reservas por día
       </h1>
