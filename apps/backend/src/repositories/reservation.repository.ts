@@ -1,5 +1,5 @@
 import { Reservation } from "@prisma/client";
-import { prisma } from "../db/prismaClient.ts";
+import { prisma } from "../db/prismaClient";
 import dayjs from "dayjs";
 
 

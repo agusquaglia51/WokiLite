@@ -1,6 +1,6 @@
 import express from "express";
-import { ReservationService } from "../services/reservation.service.ts";
-import { reservationSchema } from "../schemas/reservationSchema.ts";
+import { ReservationService } from "../services/reservation.service";
+import { reservationSchema } from "../schemas/reservationSchema";
 
 const router = express.Router();
 

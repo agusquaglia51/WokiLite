@@ -1,11 +1,11 @@
 import express from "express";
-import { doIntervalsOverlap, generateTimeSlots } from "../utils/time.ts";
+import { doIntervalsOverlap, generateTimeSlots } from "../utils/time";
 import dayjs from "dayjs";
-import { RestaurantService } from "../services/restaurant.service.ts";
-import { SectorService } from "../services/sector.service.ts";
-import { Table } from "../types/types.ts";
-import { ReservationService } from "../services/reservation.service.ts";
-import { TableService } from "../services/table.service.ts";
+import { RestaurantService } from "../services/restaurant.service";
+import { SectorService } from "../services/sector.service";
+import { Table } from "../types/types";
+import { ReservationService } from "../services/reservation.service";
+import { TableService } from "../services/table.service";
 
 
 const router = express.Router();

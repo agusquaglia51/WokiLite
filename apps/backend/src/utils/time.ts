@@ -6,9 +6,12 @@ dayjs.extend(utc);
 dayjs.extend(timezonePlugin);
 
 export function parseTime(timeStr: string): { hour: number; minute: number } {
-  const [hour, minute] = timeStr.split(':').map(Number);
+  const [hourStr, minuteStr] = timeStr.split(":");
+  const hour = Number(hourStr) || 0;
+  const minute = Number(minuteStr) || 0;
   return { hour, minute };
 }
+
 
 export function isWithinShifts(
   dateTime: Date,

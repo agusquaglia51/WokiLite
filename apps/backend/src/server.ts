@@ -2,11 +2,11 @@ import express from 'express';
 import cors from 'cors';
 import pinoHttp from 'pino-http';
 import dotenv from 'dotenv';
-import availabilityRouter from './routes/availability.route.ts';
-import reservationRouter from "./routes/reservations.route.ts";
-import restaurantRouter from "./routes/restaurant.route.ts";
-import { ensureDatabaseExists } from './db/index.ts';
-import { logger } from './logger.ts';
+import availabilityRouter from './routes/availability.route';
+import reservationRouter from "./routes/reservations.route";
+import restaurantRouter from "./routes/restaurant.route";
+import { ensureDatabaseExists } from './db/index';
+import { logger } from './logger';
 
 dotenv.config();
 
