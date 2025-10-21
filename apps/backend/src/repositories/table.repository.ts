@@ -1,5 +1,5 @@
 import { Table } from "@prisma/client";
-import {prisma} from "../db/prismaClient";
+import {prisma} from "../db/prismaClient.js";
 
 export class TableRepository {
 

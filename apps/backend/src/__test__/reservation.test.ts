@@ -2,8 +2,8 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach } from '@jest/glo
 import { PrismaClient } from '@prisma/client';
 import dayjs from 'dayjs';
 import dotenv from 'dotenv';
-import { ReservationService } from '../services/reservation.service';
-import { CreateReservationDto } from '../schemas/reservationSchema';
+import { ReservationService } from '../services/reservation.service.js';
+import { CreateReservationDto } from '../schemas/reservationSchema.js';
 
 // Cargar variables de entorno
 dotenv.config();

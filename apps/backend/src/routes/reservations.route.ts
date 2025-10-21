@@ -1,6 +1,7 @@
 import express from "express";
-import { ReservationService } from "../services/reservation.service";
-import { reservationSchema } from "../schemas/reservationSchema";
+import { ReservationService } from "../services/reservation.service.js";
+import { reservationSchema } from "../schemas/reservationSchema.js";
+import { logger } from "../logger.js";
 
 const router = express.Router();
 
@@ -10,7 +11,7 @@ router.post("/", async (req, res, next) => {
     const idempotencyKey = req.headers["idempotency-key"] as string;
 
     if (!idempotencyKey) {
-      req.log.warn({
+      logger.warn({
         operation: 'create_reservation',
         outcome: 'missing_idempotency_key'
       }, 'Missing idempotency key');
@@ -23,7 +24,7 @@ router.post("/", async (req, res, next) => {
 
     const body = reservationSchema.parse(req.body);
 
-    req.log.info({
+    logger.info({
       restaurantId: body.restaurantId,
       sectorId: body.sectorId,
       partySize: body.partySize,
@@ -38,7 +39,7 @@ router.post("/", async (req, res, next) => {
     );
 
     if (!reservation) {
-      req.log.error({
+      logger.error({
         idempotencyKey,
         operation: 'create_reservation',
         outcome: 'null_reservation'
@@ -49,7 +50,7 @@ router.post("/", async (req, res, next) => {
 
     const durationMs = Date.now() - startTime;
 
-    req.log.info({
+    logger.info({
       reservationId: reservation.id,
       restaurantId: reservation.restaurantId,
       sectorId: reservation.sectorId,
@@ -82,7 +83,7 @@ router.post("/", async (req, res, next) => {
 
     const durationMs = Date.now() - startTime;
     if (error.message.includes("No hay mesas disponibles")) {
-      req.log.warn({
+      logger.warn({
         error: error.message,
         durationMs,
         operation: 'create_reservation',
@@ -95,7 +96,7 @@ router.post("/", async (req, res, next) => {
       });
     }
     if (error.message.includes("fuera del horario")) {
-      req.log.warn({
+      logger.warn({
         error: error.message,
         durationMs,
         operation: 'create_reservation',
@@ -108,7 +109,7 @@ router.post("/", async (req, res, next) => {
       });
     }
 
-    req.log.error({
+    logger.error({
       error: error.message,
       stack: error.stack,
       durationMs,
@@ -125,7 +126,7 @@ router.delete("/:id", async(req, res) => {
   try {
     const {id} = req.params
 
-    req.log.info({ reservationId: id }, 'Attempting to cancel reservation');
+    logger.info({ reservationId: id }, 'Attempting to cancel reservation');
 
     const reservation = await ReservationService.cancelReservation(id)
     if(!reservation){
@@ -134,7 +135,7 @@ router.delete("/:id", async(req, res) => {
 
     const durationMs = Date.now() - startTime;
 
-    req.log.info({
+    logger.info({
       reservationId: id,
       restaurantId: reservation.restaurantId,
       sectorId: reservation.sectorId,
@@ -151,7 +152,7 @@ router.delete("/:id", async(req, res) => {
   }catch(err){
     const durationMs = Date.now() - startTime;
     
-    req.log.error({
+    logger.error({
       reservationId: req.params.id,
       error: err instanceof Error ? err.message : 'Unknown error',
       durationMs,

@@ -1,12 +1,12 @@
 import dayjs from "dayjs";
-import { CreateReservationDto } from "../schemas/reservationSchema";
-import {prisma} from "../db/prismaClient";
-import { TableRepository } from "../repositories/table.repository";
-import { ReservationRepository } from "../repositories/reservation.repository";
-import {  Reservation, ReservationDto } from "../types/types";
-import { getOccupiedTables, findAvailableTables } from "../utils/availability";
-import { RestaurantRepository } from "../repositories/restaurant.repository";
-import { isWithinShifts } from "../utils/time";
+import { CreateReservationDto } from "../schemas/reservationSchema.js";
+import {prisma} from "../db/prismaClient.js";
+import { TableRepository } from "../repositories/table.repository.js";
+import { ReservationRepository } from "../repositories/reservation.repository.js";
+import {  Reservation, ReservationDto } from "../types/types.js";
+import { getOccupiedTables, findAvailableTables } from "../utils/availability.js";
+import { RestaurantRepository } from "../repositories/restaurant.repository.js";
+import { isWithinShifts } from "../utils/time.js";
 
 export class ReservationService {
 

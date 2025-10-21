@@ -1,6 +1,6 @@
 import { IdempotencyKey } from "@prisma/client";
-import { prisma } from "../db/prismaClient";
-import { IdempotencyKeyDto } from "../types/types";
+import { prisma } from "../db/prismaClient.js";
+import { IdempotencyKeyDto } from "../types/types.js";
 
 
 export class IdempotencyRepository {

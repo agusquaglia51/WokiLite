@@ -1,5 +1,5 @@
 import { Restaurant } from '@prisma/client';
-import { prisma } from '../db/prismaClient';
+import { prisma } from '../db/prismaClient.js';
 
 export class RestaurantRepository {
   static async findById(id: string): Promise<Restaurant | null> {

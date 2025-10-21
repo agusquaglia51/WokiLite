@@ -1,8 +1,9 @@
 import express from "express";
-import { RestaurantService } from "../services/restaurant.service";
-import { TableService } from "../services/table.service";
-import { SectorService } from "../services/sector.service";
-import { Table } from "../types/types";
+import { RestaurantService } from "../services/restaurant.service.js";
+import { TableService } from "../services/table.service.js";
+import { SectorService } from "../services/sector.service.js";
+import { Table } from "../types/types.js";
+import { logger } from "../logger.js";
 
 
 const router = express.Router();
@@ -11,7 +12,7 @@ router.get("/", async (req, res) => {
   const startTime = Date.now();
   try {
     
-    req.log.info({
+    logger.info({
       operation: 'list_restaurants'
     }, 'Fetching all restaurants');
 
@@ -20,7 +21,7 @@ router.get("/", async (req, res) => {
     if (!restaurantList) {
       const durationMs = Date.now() - startTime;
 
-      req.log.warn({
+      logger.warn({
         durationMs,
         operation: 'list_restaurants',
         outcome: 'not_found'
@@ -31,7 +32,7 @@ router.get("/", async (req, res) => {
 
      const durationMs = Date.now() - startTime;
 
-    req.log.info({
+    logger.info({
       restaurantCount: restaurantList.length,
       durationMs,
       operation: 'list_restaurants',
@@ -43,7 +44,7 @@ router.get("/", async (req, res) => {
   } catch (error) {
     const durationMs = Date.now() - startTime;
 
-    req.log.error({
+    logger.error({
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
       durationMs,
@@ -61,7 +62,7 @@ router.get("/:id", async (req, res) => {
   try {
     const {id} = req.params
 
-    req.log.info({
+    logger.info({
       restaurantId: id,
       operation: 'get_restaurant'
     }, 'Fetching restaurant');
@@ -71,7 +72,7 @@ router.get("/:id", async (req, res) => {
     if (!restaurant) {
       const durationMs = Date.now() - startTime;
 
-      req.log.warn({
+      logger.warn({
         restaurantId: id,
         durationMs,
         operation: 'get_restaurant',
@@ -83,7 +84,7 @@ router.get("/:id", async (req, res) => {
 
     const durationMs = Date.now() - startTime;
 
-    req.log.info({
+    logger.info({
       restaurantId: id,
       restaurantName: restaurant.name,
       durationMs,
@@ -96,7 +97,7 @@ router.get("/:id", async (req, res) => {
   } catch (error) {
     const durationMs = Date.now() - startTime;
 
-    req.log.error({
+    logger.error({
       restaurantId: req.params.id,
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
@@ -114,7 +115,7 @@ router.get("/:id/sectors", async (req, res) => {
   try {
     const { id } = req.params;
 
-    req.log.info({
+    logger.info({
       restaurantId: id,
       operation: 'list_sectors'
     }, 'Fetching sectors');
@@ -124,7 +125,7 @@ router.get("/:id/sectors", async (req, res) => {
 
     const durationMs = Date.now() - startTime;
 
-    req.log.info({
+    logger.info({
       restaurantId: id,
       sectorCount: sectors.length,
       durationMs,
@@ -136,7 +137,7 @@ router.get("/:id/sectors", async (req, res) => {
   } catch (error) {
     const durationMs = Date.now() - startTime;
 
-    req.log.error({
+    logger.error({
       restaurantId: req.params.id,
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
@@ -155,7 +156,7 @@ router.get("/:id/tables", async (req, res) => {
   try {
     const { id } = req.params;
 
-    req.log.info({
+    logger.info({
       restaurantId: id,
       operation: 'list_tables'
     }, 'Fetching tables');
@@ -172,7 +173,7 @@ router.get("/:id/tables", async (req, res) => {
 
     const durationMs = Date.now() - startTime;
 
-    req.log.info({
+    logger.info({
       restaurantId: id,
       sectorCount: sectors.length,
       tableCount: tables.length,
@@ -195,7 +196,7 @@ router.get("/:id/tables", async (req, res) => {
   } catch (error) {
     const durationMs = Date.now() - startTime;
 
-    req.log.error({
+    logger.error({
       restaurantId: req.params.id,
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,

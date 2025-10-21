@@ -1,5 +1,5 @@
 import dayjs from "dayjs";
-import { Reservation, Table } from "../types/types";
+import { Reservation, Table } from "../types/types.js";
 
   export const findAvailableTables = (
     allTables: Table[],

@@ -1,11 +1,12 @@
 import express from "express";
-import { doIntervalsOverlap, generateTimeSlots } from "../utils/time";
+import { doIntervalsOverlap, generateTimeSlots } from "../utils/time.js";
 import dayjs from "dayjs";
-import { RestaurantService } from "../services/restaurant.service";
-import { SectorService } from "../services/sector.service";
-import { Table } from "../types/types";
-import { ReservationService } from "../services/reservation.service";
-import { TableService } from "../services/table.service";
+import { RestaurantService } from "../services/restaurant.service.js";
+import { SectorService } from "../services/sector.service.js";
+import { Table } from "../types/types.js";
+import { ReservationService } from "../services/reservation.service.js";
+import { TableService } from "../services/table.service.js";
+import { logger } from "../logger.js";
 
 
 const router = express.Router();
@@ -23,7 +24,7 @@ router.get("/", async (req ,res) => {
       partySize: string;
     };
 
-    req.log.info({
+    logger.info({
       restaurantId,
       sectorId,
       date,
@@ -32,7 +33,7 @@ router.get("/", async (req ,res) => {
     }, 'Checking availability');
 
     if (!restaurantId || !sectorId || !date || !partySize) {
-      req.log.warn({
+      logger.warn({
         restaurantId,
         sectorId,
         date,
@@ -53,7 +54,7 @@ router.get("/", async (req ,res) => {
     const party = parseInt(partySize);
 
     if (!restaurant) {
-      req.log.warn({
+      logger.warn({
         restaurantId,
         operation: 'check_availability',
         outcome: 'restaurant_not_found'
@@ -66,7 +67,7 @@ router.get("/", async (req ,res) => {
     }
 
     if (!sector) {
-      req.log.warn({
+      logger.warn({
         sectorId,
         operation: 'check_availability',
         outcome: 'sector_not_found'
@@ -79,7 +80,7 @@ router.get("/", async (req ,res) => {
     }
 
     if (isNaN(party) || party < 1) {
-      req.log.warn({
+      logger.warn({
         partySize,
         operation: 'check_availability',
         outcome: 'invalid_party_size'
@@ -142,7 +143,7 @@ router.get("/", async (req ,res) => {
     const availableSlots = slots.filter(s => s.available).length;
     const totalSlots = slots.length;
 
-    req.log.info({
+    logger.info({
       restaurantId,
       sectorId,
       date,

@@ -1,6 +1,6 @@
 import { execSync } from "child_process";
 import { Client } from "pg";
-import { logger } from "../logger";
+import { logger } from "../logger.js";
 
 const pgConfig = {
   user: process.env.PG_USER || 'postgres',

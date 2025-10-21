@@ -1,5 +1,5 @@
-import { TableRepository } from "../repositories/table.repository";
-import { Table } from "../types/types";
+import { TableRepository } from "../repositories/table.repository.js";
+import { Table } from "../types/types.js";
 
 export class TableService  {
   static async getTablesBySector(sectorId: string): Promise<Table[]> {

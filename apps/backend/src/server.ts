@@ -1,12 +1,13 @@
 import express from 'express';
 import cors from 'cors';
-import pinoHttp from 'pino-http';
 import dotenv from 'dotenv';
-import availabilityRouter from './routes/availability.route';
-import reservationRouter from "./routes/reservations.route";
-import restaurantRouter from "./routes/restaurant.route";
-import { ensureDatabaseExists } from './db/index';
-import { logger } from './logger';
+import availabilityRouter from './routes/availability.route.js';
+import reservationRouter from "./routes/reservations.route.js";
+import restaurantRouter from "./routes/restaurant.route.js";
+import { ensureDatabaseExists } from './db/index.js';
+import pinoHttp from 'pino-http';
+import type { HttpLogger } from 'pino-http';
+import { logger } from './logger.js';
 
 dotenv.config();
 
@@ -19,8 +20,10 @@ server.use(cors({
   allowedHeaders: ["Content-Type", "Authorization","idempotency-key",]
 }));
 
+const httpLogger: HttpLogger = (pinoHttp as any).default?.({ logger }) ?? (pinoHttp as any)({ logger });
 
-server.use(pinoHttp({ logger }));
+
+server.use(httpLogger);
 server.use(express.json());
 
 

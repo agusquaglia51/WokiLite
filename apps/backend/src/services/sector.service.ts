@@ -1,5 +1,5 @@
-import { SectorRepository } from "../repositories/sector.repository";
-import { Sector } from "../types/types";
+import { SectorRepository } from "../repositories/sector.repository.js";
+import { Sector } from "../types/types.js";
 
 export class SectorService {
 

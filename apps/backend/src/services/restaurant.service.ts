@@ -1,5 +1,5 @@
-import { RestaurantRepository } from "../repositories/restaurant.repository";
-import { Restaurant } from "../types/types";
+import { RestaurantRepository } from "../repositories/restaurant.repository.js";
+import { Restaurant } from "../types/types.js";
 
 export class RestaurantService {
 
