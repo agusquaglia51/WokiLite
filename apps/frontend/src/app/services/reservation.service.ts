@@ -45,7 +45,7 @@ export class ReservationService {
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/reservations/${id}`,
         {
-          method: "PUT",
+          method: "DELETE",
         }
       );
       if (!res.ok) throw new Error("Error deleting reservation");
