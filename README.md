@@ -4,6 +4,7 @@ A modern restaurant reservation system built with a monorepo architecture using 
 
 ## 📋 Table of Contents
 
+- [Quick Start](#quick-start)
 - [Tech Stack](#tech-stack)
 - [Prerequisites](#prerequisites)
 - [Installation & Setup](#installation--setup)
@@ -12,7 +13,37 @@ A modern restaurant reservation system built with a monorepo architecture using 
 - [Design Decisions](#design-decisions)
 - [Assumptions](#assumptions)
 - [Limitations](#limitations)
+- [Deployment](#deployment)
 - [Project Structure](#project-structure)
+- [Troubleshooting](#troubleshooting)
+- [Future Improvements](#future-improvements)
+
+---
+
+## 🚀 Quick Start
+
+```bash
+# Clone and install
+git clone <repository-url>
+cd WokiLite
+npm install
+
+# Setup environment
+cd apps/backend
+cp .env.example .env
+
+cd ../frontend
+touch .env.local
+
+# Run the application
+cd ../..
+npm run dev
+```
+
+Access the application at:
+
+- **Frontend**: http://localhost:3000
+- **Backend**: http://localhost:3001
 
 ---
 
@@ -190,6 +221,17 @@ npm start
 http://localhost:3001
 ```
 
+### Error Handling
+
+All API responses follow a consistent error format:
+
+```json
+{
+  "error": "error_code",
+  "message": "Human-readable error message"
+}
+```
+
 ### Endpoints
 
 #### **Restaurants**
@@ -200,7 +242,9 @@ http://localhost:3001
 GET /restaurants
 ```
 
-**Response**:
+**Description**: Retrieves a list of all available restaurants.
+
+**Response** (200 OK):
 
 ```json
 [
@@ -224,7 +268,17 @@ GET /restaurants
 GET /restaurants/:id
 ```
 
-**Response**: Single restaurant object
+**Description**: Retrieves details for a specific restaurant.
+
+**Path Parameters**:
+
+- `id` (required): Restaurant ID
+
+**Response** (200 OK): Single restaurant object (same structure as above)
+
+**Error Responses**:
+
+- `404 Not Found`: Restaurant not found
 
 #### **Availability**
 
@@ -234,14 +288,16 @@ GET /restaurants/:id
 GET /availability?restaurantId={id}&sectorId={id}&date={YYYY-MM-DD}&partySize={number}
 ```
 
+**Description**: Checks available time slots for a restaurant sector on a given date.
+
 **Query Parameters**:
 
 - `restaurantId` (required): Restaurant ID
 - `sectorId` (required): Sector ID
 - `date` (required): Date in YYYY-MM-DD format
-- `partySize` (required): Number of guests
+- `partySize` (required): Number of guests (must be between 1 and max table capacity)
 
-**Response**:
+**Response** (200 OK):
 
 ```json
 {
@@ -262,6 +318,11 @@ GET /availability?restaurantId={id}&sectorId={id}&date={YYYY-MM-DD}&partySize={n
 }
 ```
 
+**Error Responses**:
+
+- `400 Bad Request`: Invalid parameters or date format
+- `404 Not Found`: Restaurant or sector not found
+
 #### **Reservations**
 
 ##### Create Reservation
@@ -269,6 +330,8 @@ GET /availability?restaurantId={id}&sectorId={id}&date={YYYY-MM-DD}&partySize={n
 ```http
 POST /reservation/create
 ```
+
+**Description**: Creates a new reservation. Idempotency is supported via the `Idempotency-Key` header.
 
 **Headers**:
 
@@ -294,7 +357,7 @@ Idempotency-Key: {unique-uuid}
 }
 ```
 
-**Response**:
+**Response** (201 Created):
 
 ```json
 {
@@ -315,73 +378,103 @@ Idempotency-Key: {unique-uuid}
 }
 ```
 
+**Error Responses**:
+
+- `400 Bad Request`: Invalid input or validation error
+- `409 Conflict`: No available tables for the requested time and party size
+- `422 Unprocessable Entity`: Duplicate reservation detected (same idempotency key)
+- `500 Internal Server Error`: Server error
+
 ##### Cancel Reservation
 
 ```http
 PUT /reservation/cancel/:id
 ```
 
-**Response**: Updated reservation with status "CANCELLED"
+**Description**: Cancels an existing reservation.
+
+**Path Parameters**:
+
+- `id` (required): Reservation ID
+
+**Response** (200 OK): Updated reservation with status "CANCELLED"
+
+```json
+{
+  "id": "uuid",
+  "status": "CANCELLED",
+  "updatedAt": "2025-01-20T10:05:00Z"
+}
+```
+
+**Error Responses**:
+
+- `404 Not Found`: Reservation not found
+- `400 Bad Request`: Reservation already cancelled
 
 ---
 
 ## 🏗 Design Decisions
 
-### 1. **Monorepo Architecture**
+### 1. Monorepo Architecture with Turborepo
 
-- Used Turborepo for efficient builds and caching
-- Shared types between frontend and backend
-- Independent deployment of services
+We chose a monorepo structure to maintain shared types, utilities, and configurations across frontend and backend. Turborepo provides efficient incremental builds and caching, enabling faster development cycles. This approach allows independent deployment while maintaining code consistency.
 
-### 2. **Database Design**
+### 2. Database Schema Design
 
-- Single table per entity (Restaurant, Sector, Table, Reservation)
-- Denormalized customer data in Reservation table for simplicity
-- Idempotency keys stored separately for duplicate request handling
+The database uses separate tables for each entity (Restaurant, Sector, Table, Reservation, IdempotencyKey). Customer data is denormalized within the Reservation table to simplify queries and reduce joins. This trade-off prioritizes query performance over strict normalization.
 
-### 3. **Reservation Duration**
+### 3. Fixed Reservation Duration
 
-- Fixed 90-minute duration per reservation
-- 15-minute time slot intervals for availability checks
+All reservations have a fixed 90-minute duration. This simplifies capacity planning and availability calculations. Time slot intervals are set to 15 minutes, providing granular availability options without excessive complexity.
 
-### 4. **Timezone Handling**
+### 4. Timezone Handling Strategy
 
-- Each restaurant has its own timezone
-- All dates stored as ISO 8601 strings with timezone offset
-- Day.js with timezone plugin for conversions
+Each restaurant maintains its own timezone configuration. All dates are stored and transmitted as ISO 8601 strings with timezone offsets. Day.js with the timezone plugin handles conversions, ensuring consistent behavior across different regions.
 
-### 5. **Idempotency**
+### 5. Idempotency Implementation
 
-- UUID-based idempotency keys prevent duplicate reservations
-- Keys stored in separate table linked to reservations
-- Implemented at transaction level for consistency
+Idempotency keys (UUIDs) prevent duplicate reservations from concurrent requests. Keys are stored in a separate table and checked at the transaction level, ensuring data consistency. Clients must provide unique keys via the `Idempotency-Key` header.
 
-### 6. **Table Assignment**
+### 6. Automatic Table Assignment
 
-- Automatic table assignment based on party size
-- Tables filtered by minSize/maxSize capacity
-- Prioritizes smallest suitable table
+Tables are automatically assigned based on party size, matching capacity constraints (minSize/maxSize). The system prioritizes the smallest suitable table to optimize capacity usage. Manual table assignment is not supported in the current implementation.
 
-### 7. **API Error Handling**
+### 7. Structured Error Handling
 
-- Structured error responses with error codes
-- Validation using Zod schemas
-- Logging with Pino for debugging
+The API implements consistent error responses with specific error codes. Zod handles input validation with detailed messages. Pino logging provides debugging information without exposing sensitive details to clients.
+
+### 8. Stateless API Design
+
+The backend is designed as a stateless REST API, enabling horizontal scaling. Authentication is not implemented, making the system suitable for public-facing reservations.
 
 ---
 
 ## 🔍 Assumptions
 
-1. **Reservation Duration**: All reservations last exactly 90 minutes
-2. **Single Table Assignment**: Each reservation is assigned to exactly one table (no table combinations)
-3. **Operating Hours**: Restaurants define operating hours via "shifts" array
-4. **No Authentication**: System is open - no user authentication implemented
-5. **Same-Day Bookings**: Customers can book for the current day
-6. **Immediate Confirmation**: All valid reservations are immediately confirmed
-7. **No Cancellation Window**: Reservations can be cancelled at any time
-8. **Capacity Checks**: Tables must match party size within min/max range
-9. **Timezone Consistency**: All times for a restaurant use its configured timezone
-10. **No Waitlist**: If no tables available, reservation is rejected
+1. **Reservation Duration**: All reservations last exactly 90 minutes regardless of party size or time of day.
+
+2. **Single Table Assignment**: Each reservation is assigned to exactly one table. Multi-table combinations are not supported.
+
+3. **Operating Hours**: Restaurants define operating hours through a "shifts" array containing start and end times.
+
+4. **No Authentication Required**: The system is open to all users. No login or user authentication is implemented.
+
+5. **Same-Day Bookings**: Customers can make reservations for the current day if slots are available.
+
+6. **Immediate Confirmation**: All valid reservations are automatically confirmed. No manual approval process exists.
+
+7. **No Cancellation Window**: Reservations can be cancelled at any time, regardless of proximity to the reservation date.
+
+8. **Capacity-Based Table Matching**: Tables must accommodate the party size within their minimum and maximum capacity range.
+
+9. **Restaurant Timezone Consistency**: All times for a restaurant use its configured timezone exclusively.
+
+10. **No Waitlist Functionality**: If no suitable tables are available, the reservation request is rejected. Customers are not placed on a waiting list.
+
+11. **Idempotency by Request**: The same request with the same `Idempotency-Key` returns the same result without creating duplicate reservations.
+
+12. **Date Format Consistency**: All date parameters use YYYY-MM-DD format. Time parameters include timezone offset in ISO 8601 format.
 
 ---
 
@@ -389,54 +482,96 @@ PUT /reservation/cancel/:id
 
 ### Current Implementation
 
-1. **No User Authentication**
-   - No login/signup system
-   - Anyone can create/cancel reservations
-   - No user profiles or reservation history
+**Authentication & Authorization**
 
-2. **Single Table Assignment**
-   - Cannot combine multiple tables for large parties
-   - Large groups may not find availability
+- No user authentication system
+- No role-based access control
+- Anyone can create or cancel any reservation
+- No user profiles or reservation history per user
 
-3. **Fixed Reservation Duration**
-   - All reservations are 90 minutes
-   - No custom duration options
+**Reservation Management**
 
-4. **No Payment Integration**
-   - No deposits or prepayment
-   - No cancellation fees
+- Single table assignment only (cannot combine multiple tables)
+- Large parties may fail to find availability if no single table is large enough
+- Fixed 90-minute reservation duration (no custom durations available)
+- No deposit or prepayment system
+- No cancellation fees or penalties
+- Reservations cannot be modified after creation (must cancel and rebook)
 
-5. **No Real-Time Updates**
-   - Frontend doesn't automatically refresh availability
-   - Manual page refresh required
+**User Experience**
 
-6. **Limited Search**
-   - Search functionality not fully implemented
-   - No filtering by cuisine, location, or price
+- No real-time availability updates (frontend requires manual page refresh)
+- No search functionality by cuisine, location, price range, or other filters
+- No email or SMS confirmations for reservations
+- No reminder notifications before reservation time
+- No customer reviews or ratings system
 
-7. **No Notifications**
-   - No email/SMS confirmations
-   - No reminder notifications
+**Restaurant Management**
 
-8. **Basic Error Handling**
-   - Some edge cases may not be covered
-   - Error messages could be more descriptive
+- No admin dashboard for restaurant owners
+- Restaurants cannot manage their own listings or hours
+- No ability to manually block time slots or mark unavailable tables
+- No reservation management interface for staff
+- No analytics or reporting for restaurant owners
 
-9. **No Admin Dashboard**
-   - Restaurant owners cannot manage their listings
-   - No reservation management interface
+**System Features**
 
-10. **No Reviews/Ratings**
-    - No customer feedback system
-    - No restaurant ratings
-
-### Performance Considerations
-
-- No caching implemented (Redis)
-- No rate limiting
-- No database connection pooling optimization
+- No payment integration or billing
+- No integration with third-party services
+- No API rate limiting (vulnerable to abuse)
+- No caching mechanism (Redis not implemented)
 - No CDN for static assets
 - No lazy loading for large datasets
+- No data export functionality
+
+**Performance Considerations**
+
+- Database connection pooling not optimized for high load
+- No query optimization or indexing beyond basic setup
+- No static asset caching headers
+- Single-instance deployment (no horizontal scaling considered)
+
+**Data & Security**
+
+- Sensitive information (phone, email) stored in plain text
+- No data encryption at rest or in transit (if deployed over HTTP)
+- No audit logging for administrative actions
+- CORS configured but not production-hardened
+- No input sanitization against injection attacks
+
+---
+
+## 🌐 Deployment
+
+### Current Status
+
+**The application is not currently deployed publicly.** This is a development version meant to run locally.
+
+### Preparing for Deployment
+
+To deploy this application to production, consider the following:
+
+1. **Environment Configuration**: Set appropriate environment variables for production databases, API URLs, and security settings.
+
+2. **Database Migration**: Use a managed PostgreSQL service (AWS RDS, DigitalOcean, Heroku) rather than self-hosted.
+
+3. **Backend Deployment**: Deploy to a Node.js hosting platform like Vercel, Railway, Heroku, or AWS Lambda.
+
+4. **Frontend Deployment**: Deploy the Next.js frontend to Vercel or similar platform.
+
+5. **Security Hardening**: Implement HTTPS, add authentication, rate limiting, and input validation.
+
+6. **Monitoring**: Set up error tracking (Sentry), performance monitoring (New Relic), and logging aggregation.
+
+### Deployment Platforms (Recommended)
+
+- **Frontend**: Vercel, Netlify, or AWS Amplify
+- **Backend**: Railway, Render, Heroku, or AWS ECS
+- **Database**: AWS RDS, DigitalOcean Managed Database, or Heroku Postgres
+
+### Public URL
+
+Once deployed, the public URL will be available here. For now, the application is only accessible locally at `http://localhost:3000`.
 
 ---
 
@@ -501,17 +636,6 @@ WokiLite/
 
 ---
 
-## 🧪 Testing
-
-Currently, testing infrastructure is set up but tests are not implemented:
-
-```bash
-# Run tests (when implemented)
-npm run test
-```
-
----
-
 ## 🔧 Troubleshooting
 
 ### Database Connection Issues
@@ -535,6 +659,12 @@ psql -U postgres -h localhost
 psql -U postgres -c "CREATE DATABASE wokilitedb;"
 ```
 
+4. Test connection:
+
+```bash
+psql -U postgres -d wokilitedb -h localhost
+```
+
 ### Port Already in Use
 
 If ports 3000 or 3001 are in use:
@@ -544,39 +674,71 @@ If ports 3000 or 3001 are in use:
 lsof -i :3000
 lsof -i :3001
 
-# Kill process
+# Kill process (use appropriate command for your OS)
 kill -9 <PID>
 ```
 
-Or change ports in `.env` files.
+Or change ports in `.env` files and `next.config.js`.
 
 ### CORS Issues
 
-If you encounter CORS errors, verify:
+If you encounter CORS errors:
 
-- Backend CORS configuration in `server.ts`
-- Frontend API URL in `.env.local`
-- Both services are running
+- Verify backend CORS configuration in `server.ts`
+- Ensure frontend API URL in `.env.local` matches backend URL
+- Confirm both services are running
+- Check browser console for specific error messages
+
+### Database Migration Errors
+
+If migrations fail:
+
+```bash
+# Reset database (WARNING: deletes all data)
+npx prisma migrate reset
+
+# Or manually drop and recreate
+psql -U postgres -c "DROP DATABASE wokilitedb;"
+psql -U postgres -c "CREATE DATABASE wokilitedb;"
+npx prisma migrate deploy
+```
+
+### Build Errors
+
+If you encounter build errors:
+
+```bash
+# Clear node_modules and reinstall
+rm -rf node_modules apps/*/node_modules
+npm install
+
+# Clear build cache
+rm -rf apps/*/dist apps/*/.next
+npm run build
+```
 
 ---
 
 ## 📝 Future Improvements
 
-1. **User Authentication & Authorization**
-2. **Real-time availability updates** (WebSockets)
-3. **Email/SMS notifications**
-4. **Payment integration**
-5. **Admin dashboard** for restaurant management
-6. **Review and rating system**
-7. **Advanced search and filters**
-8. **Multi-table reservations**
-9. **Flexible reservation durations**
-10. **Mobile app** (React Native)
-11. **Comprehensive testing** (unit, integration, e2e)
-12. **Performance optimizations** (caching, CDN)
-13. **Analytics dashboard**
-14. **Waitlist functionality**
-15. **Special requests handling**
+1. User authentication and authorization system
+2. Real-time availability updates via WebSockets
+3. Email and SMS notifications for confirmations and reminders
+4. Payment integration (Stripe, PayPal)
+5. Admin dashboard for restaurant management
+6. Customer review and rating system
+7. Advanced search and filtering capabilities
+8. Multi-table reservations for large groups
+9. Flexible reservation durations
+10. Mobile app (React Native or Flutter)
+11. Comprehensive testing (unit, integration, e2e)
+12. Performance optimizations (caching, CDN, database indexing)
+13. Analytics dashboard for restaurants
+14. Waitlist functionality
+15. Special requests and dietary preferences handling
+16. Promotional codes and discounts
+17. Integration with restaurant POS systems
+18. API key management for partner integrations
 
 ---
 
