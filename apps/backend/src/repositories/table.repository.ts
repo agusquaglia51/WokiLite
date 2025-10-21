@@ -1,8 +1,6 @@
 import { Table } from "@prisma/client";
 import {prisma} from "../db/prismaClient.ts";
 
-
-
 export class TableRepository {
 
   static async findById(id: string): Promise<Table | null>{

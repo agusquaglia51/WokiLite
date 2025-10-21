@@ -42,11 +42,28 @@ export class ReservationService {
   }
 
 
-  static async createReservation(data: CreateReservationDto,idempotencyKey: string)
-  : Promise<any | null> {
+
+  static async createReservation(data: CreateReservationDto, idempotencyKey: string): Promise<any | null> {
 
     const {customer, ...rest} = data;
 
+    const existingKey = await prisma.idempotencyKey.findUnique({
+      where: { key: idempotencyKey },
+    });
+
+    if (existingKey) {
+     
+      const existingReservation = await prisma.reservation.findUnique({
+        where: { id: existingKey.reservationId },
+      });
+
+      if (existingReservation) {
+        
+        return existingReservation;
+      }
+    }
+
+    
     const restaurant = await RestaurantRepository.findById(data.restaurantId);
     if (!restaurant) throw new Error("Restaurant not found");
 
@@ -54,6 +71,7 @@ export class ReservationService {
     if (!isWithinShifts(startDateTime, restaurant.shifts as any)) {
       throw new Error("Reserva fuera del horario de servicio");
     }
+
 
     const tables = (await TableRepository.findManyBySector(data.sectorId)).map((t) => ({
       ...t,
@@ -65,7 +83,11 @@ export class ReservationService {
       throw new Error("No hay mesas disponibles en este sector");
     }
 
-    const reservations = (await ReservationRepository.findBySector(data.restaurantId,data.sectorId, data.startDateTimeISO)).map((r) => ({
+    const reservations = (await ReservationRepository.findBySector(
+      data.restaurantId,
+      data.sectorId, 
+      data.startDateTimeISO
+    )).map((r) => ({
       ...r,
       notes: r.notes ?? undefined,
       status: r.status as Reservation["status"],
@@ -89,7 +111,7 @@ export class ReservationService {
       endDateTimeISO
     );
 
-     const availableTableIds = findAvailableTables(
+    const availableTableIds = findAvailableTables(
       tables,
       occupiedTables,
       data.partySize
@@ -111,23 +133,25 @@ export class ReservationService {
       customerEmail: customer.email,
     };
 
+    
     return await prisma.$transaction(async (tx) => {
-     
-      const existingKey = await tx.idempotencyKey.findUnique({
+
+      const doubleCheckKey = await tx.idempotencyKey.findUnique({
         where: { key: idempotencyKey },
       });
 
-      if (existingKey) {
+      if (doubleCheckKey) {
         const existingReservation = await tx.reservation.findUnique({
-          where: { id: existingKey.reservationId },
+          where: { id: doubleCheckKey.reservationId },
         });
-
         return existingReservation;
       }
       
+    
       const reservation = await tx.reservation.create({
-        data:reservationData ,
+        data: reservationData,
       });
+      
       
       await tx.idempotencyKey.create({
         data: {
