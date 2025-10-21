@@ -5,10 +5,16 @@ import { reservationSchema } from "../schemas/reservationSchema.ts";
 const router = express.Router();
 
 router.post("/", async (req, res, next) => {
+  const startTime = Date.now();
   try {
     const idempotencyKey = req.headers["idempotency-key"] as string;
 
     if (!idempotencyKey) {
+      req.log.warn({
+        operation: 'create_reservation',
+        outcome: 'missing_idempotency_key'
+      }, 'Missing idempotency key');
+
       return res.status(400).json({ 
         error: "bad_request",
         detail: "Missing Idempotency-Key header" 
@@ -17,14 +23,42 @@ router.post("/", async (req, res, next) => {
 
     const body = reservationSchema.parse(req.body);
 
+    req.log.info({
+      restaurantId: body.restaurantId,
+      sectorId: body.sectorId,
+      partySize: body.partySize,
+      startDateTimeISO: body.startDateTimeISO,
+      idempotencyKey,
+      operation: 'create_reservation'
+    }, 'Attempting to create reservation');
+
     const reservation = await ReservationService.createReservation(
       body,
       idempotencyKey
     );
 
-    if(!reservation){
-      return res.status(500).json({message:"Internal server error"})
+    if (!reservation) {
+      req.log.error({
+        idempotencyKey,
+        operation: 'create_reservation',
+        outcome: 'null_reservation'
+      }, 'Reservation service returned null');
+
+      return res.status(500).json({ message: "Internal server error" });
     }
+
+    const durationMs = Date.now() - startTime;
+
+    req.log.info({
+      reservationId: reservation.id,
+      restaurantId: reservation.restaurantId,
+      sectorId: reservation.sectorId,
+      tableIds: reservation.tableIds,
+      partySize: reservation.partySize,
+      durationMs,
+      operation: 'create_reservation',
+      outcome: 'success'
+    }, 'Reservation created successfully');
 
     res.status(201).json({
       id: reservation.id,
@@ -45,33 +79,90 @@ router.post("/", async (req, res, next) => {
       updatedAt: reservation.updatedAt.toISOString(),
     });
   } catch (error: any) {
+
+    const durationMs = Date.now() - startTime;
     if (error.message.includes("No hay mesas disponibles")) {
+      req.log.warn({
+        error: error.message,
+        durationMs,
+        operation: 'create_reservation',
+        outcome: 'no_capacity'
+      }, 'No capacity available');
+      
       return res.status(409).json({
         error: "no_capacity",
         detail: error.message,
       });
     }
     if (error.message.includes("fuera del horario")) {
+      req.log.warn({
+        error: error.message,
+        durationMs,
+        operation: 'create_reservation',
+        outcome: 'outside_service_window'
+      }, 'Outside service window');
+      
       return res.status(422).json({
         error: "outside_service_window",
         detail: error.message,
       });
     }
+
+    req.log.error({
+      error: error.message,
+      stack: error.stack,
+      durationMs,
+      operation: 'create_reservation',
+      outcome: 'error'
+    }, 'Error creating reservation');
+
     next(error);
   }
 });
 
-router.put("/:id", async(req, res) => {
+router.delete("/:id", async(req, res) => {
+  const startTime = Date.now();
   try {
     const {id} = req.params
+
+    req.log.info({ reservationId: id }, 'Attempting to cancel reservation');
+
     const reservation = await ReservationService.cancelReservation(id)
     if(!reservation){
       return res.status(404).json({message:"No se encontro la reservacion que desea cancelar"})
     }
-    return res.status(200).json(reservation);
+
+    const durationMs = Date.now() - startTime;
+
+    req.log.info({
+      reservationId: id,
+      restaurantId: reservation.restaurantId,
+      sectorId: reservation.sectorId,
+      tableIds: reservation.tableIds,
+      partySize: reservation.partySize,
+      startDateTimeISO: reservation.startDateTimeISO,
+      customerName: reservation.customer.name,
+      durationMs,
+      operation: 'cancel_reservation',
+      outcome: 'success'
+    }, 'Reservation cancelled successfully');
+
+    return res.status(204).send();
   }catch(err){
-    console.log(err);
-    res.status(500).json({message:"Internal server error"})
+    const durationMs = Date.now() - startTime;
+    
+    req.log.error({
+      reservationId: req.params.id,
+      error: err instanceof Error ? err.message : 'Unknown error',
+      durationMs,
+      operation: 'cancel_reservation',
+      outcome: 'error'
+    }, 'Error cancelling reservation');
+
+    res.status(500).json({ 
+      error: "internal_error",
+      detail: "Error cancelling reservation" 
+    });
   }
 });
 
@@ -117,7 +208,6 @@ router.get("/day", async (req, res) => {
       })),
     });
   } catch (err) {
-    console.error(err);
     res.status(500).json({
       error: "internal_error",
       detail: "Something went wrong",

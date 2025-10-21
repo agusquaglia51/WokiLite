@@ -1,5 +1,6 @@
 import { execSync } from "child_process";
 import { Client } from "pg";
+import { logger } from "../logger";
 
 const pgConfig = {
   user: process.env.PG_USER || 'postgres',
@@ -23,12 +24,12 @@ export async function ensureDatabaseExists() {
     );
 
     if (res.rowCount === 0) {
-      console.log(`🟢 Creating database '${targetDb}'...`);
+      logger.info(`🟢 Creating database '${targetDb}'...`);
       await client.query(`CREATE DATABASE ${targetDb}`);
       execSync('npx prisma migrate deploy', { stdio: 'inherit' });
-      console.log(`✅ Database '${targetDb}' created successfully.`);
+      logger.info(`✅ Database '${targetDb}' created successfully.`);
     } else {
-      console.log(`✅ Database '${targetDb}' already exists.`);
+      logger.info(`✅ Database '${targetDb}' already exists.`);
     }
   } catch (err) {
     console.error('❌ Error checking/creating database:', err);

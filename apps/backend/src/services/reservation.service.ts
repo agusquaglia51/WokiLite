@@ -5,6 +5,8 @@ import { TableRepository } from "../repositories/table.repository.ts";
 import { ReservationRepository } from "../repositories/reservation.repository.ts";
 import {  Reservation, ReservationDto, Table } from "../types/types.ts";
 import { getOccupiedTables, findAvailableTables } from "../utils/availability.ts";
+import { RestaurantRepository } from "../repositories/restaurant.repository.ts";
+import { isWithinShifts } from "../utils/time.ts";
 
 export class ReservationService {
 
@@ -44,6 +46,14 @@ export class ReservationService {
   : Promise<any | null> {
 
     const {customer, ...rest} = data;
+
+    const restaurant = await RestaurantRepository.findById(data.restaurantId);
+    if (!restaurant) throw new Error("Restaurant not found");
+
+    const startDateTime = new Date(data.startDateTimeISO);
+    if (!isWithinShifts(startDateTime, restaurant.shifts as any)) {
+      throw new Error("Reserva fuera del horario de servicio");
+    }
 
     const tables = (await TableRepository.findManyBySector(data.sectorId)).map((t) => ({
       ...t,
@@ -132,7 +142,29 @@ export class ReservationService {
 
   static async cancelReservation(id: string){
     const reservation = await ReservationRepository.cancelReservation(id);
-    return reservation;
+
+    if (!reservation) {
+      return null;
+    }
+
+    return {
+      id: reservation.id,
+      restaurantId: reservation.restaurantId,
+      sectorId: reservation.sectorId,
+      tableIds: reservation.tableIds,
+      partySize: reservation.partySize,
+      startDateTimeISO: reservation.startDateTimeISO.toISOString(),
+      endDateTimeISO: reservation.endDateTimeISO.toISOString(),
+      status: reservation.status as Reservation["status"],
+      customer: {
+        name: reservation.customerName,
+        email: reservation.customerEmail,
+        phone: reservation.customerPhone,
+      },
+      notes: reservation.notes ?? undefined,
+      createdAt: reservation.createdAt.toISOString(),
+      updatedAt: reservation.updatedAt.toISOString(),
+    };
   }
 
   static async getReservationsByDay(restaurantId: string, date: string, sectorId?: string): Promise<ReservationDto[]>{

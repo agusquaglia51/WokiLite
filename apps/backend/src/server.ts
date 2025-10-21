@@ -6,6 +6,7 @@ import availabilityRouter from './routes/availability.route.ts';
 import reservationRouter from "./routes/reservations.route.ts";
 import restaurantRouter from "./routes/restaurant.route.ts";
 import { ensureDatabaseExists } from './db/index.ts';
+import { logger } from './logger.ts';
 
 dotenv.config();
 
@@ -19,7 +20,7 @@ server.use(cors({
 }));
 
 
-server.use(pinoHttp());
+server.use(pinoHttp({ logger }));
 server.use(express.json());
 
 
@@ -33,7 +34,7 @@ server.use("/availability",availabilityRouter);
 server.use("/reservations", reservationRouter);
 
 server.listen(port, () => {
-  console.log(`🚀 Server running on http://localhost:${port}`);
+  logger.info(`🚀 Server running on http://localhost:${port}`);
 });
 
 
