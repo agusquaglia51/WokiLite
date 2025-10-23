@@ -724,7 +724,6 @@ npm run build
 1. User authentication and authorization system
 2. Real-time availability updates via WebSockets
 3. Email and SMS notifications for confirmations and reminders
-4. Payment integration (Stripe, PayPal)
 5. Admin dashboard for restaurant management
 6. Customer review and rating system
 7. Advanced search and filtering capabilities

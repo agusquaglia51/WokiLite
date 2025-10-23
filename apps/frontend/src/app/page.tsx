@@ -11,7 +11,7 @@ export default async function HomePage({
 }) {
   const restaurants = await RestaurantService.fetchRestaurants();
   return (
-    <section>
+    <section className="pt-8">
       <section className="grid grid-cols-1 gap-12 md:grid-cols-2 lg:grid-cols-3">
         {restaurants.length > 0 &&
           restaurants.map((restaurant: Restaurant) => {
