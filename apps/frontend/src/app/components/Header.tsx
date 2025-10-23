@@ -47,7 +47,9 @@ export const Header = () => {
         </div>
       ) : (
         <button
-          onClick={() => signIn("google", { callbackUrl: "/" })}
+          onClick={() =>
+            signIn("google", { callbackUrl: "/", prompt: "select_account" })
+          }
           className="px-4 py-1 bg-gray-700 text-white rounded-md font-medium hover:bg-green-600 transition"
         >
           Iniciar sesión
