@@ -10,7 +10,7 @@ export const Header = () => {
   const toggleMenu = () => setOpenMenu(!openMenu);
 
   return (
-    <div className="flex justify-between items-center px-4 py-2 shadow-sm">
+    <div className="flex justify-between items-center px-4 py-2 shadow-sm max-h-10">
       <header className="text-xl font-bold">
         <Link prefetch={false} href={"/"}>
           WokiLite
